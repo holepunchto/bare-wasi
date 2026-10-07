@@ -1,0 +1,58 @@
+{
+  "name": "bare-wasi",
+  "version": "0.0.0",
+  "description": "Capability based WASI for JavaScript",
+  "exports": {
+    "./package": "./package.json",
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    },
+    "./memory": {
+      "types": "./lib/memory.d.ts",
+      "default": "./lib/memory.js"
+    },
+    "./constants": {
+      "types": "./lib/constants.d.ts",
+      "default": "./lib/constants.js"
+    },
+    "./errors": {
+      "types": "./lib/errors.d.ts",
+      "default": "./lib/errors.js"
+    }
+  },
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "lib"
+  ],
+  "scripts": {
+    "format": "prettier --write . && lunte --fix",
+    "lint": "prettier --check . && lunte",
+    "test": "brittle-bare --coverage test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/holepunchto/bare-wasi.git"
+  },
+  "author": "Holepunch",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/holepunchto/bare-wasi/issues"
+  },
+  "homepage": "https://github.com/holepunchto/bare-wasi#readme",
+  "dependencies": {
+    "bare-hrtime": "^2.1.2"
+  },
+  "devDependencies": {
+    "bare-fetch": "^3.4.0",
+    "bare-fs": "^4.4.4",
+    "bare-path": "^3.0.0",
+    "bare-zlib": "^1.4.1",
+    "brittle": "^3.5.0",
+    "lunte": "^1.8.4",
+    "prettier": "^3.4.2",
+    "prettier-config-holepunch": "^2.0.0",
+    "tar-stream": "^3.2.1"
+  }
+}
