@@ -1,1 +1,8 @@
-{}
+{
+  "host:rust/nofollow_errors": "the host backend cannot create links",
+  "host:rust/path_exists": "the host backend cannot create links",
+  "host:rust/path_link": "the host backend cannot create links",
+  "host:rust/readlink": "the host backend cannot create links",
+  "host:rust/symlink_create": "the host backend cannot create links",
+  "host:rust/symlink_filestat": "the host backend cannot create links"
+}

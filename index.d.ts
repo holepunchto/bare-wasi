@@ -1,3 +1,4 @@
+import wasm from 'bare-wasm'
 import constants from './lib/constants'
 import WASIError from './lib/errors'
 
@@ -196,6 +197,12 @@ interface WASIClock {
 
 /** The capabilities granted to an instance, none of which are granted by default except clocks. */
 interface WASIOptions {
+  /**
+   * The version of WASI that the options are written for, which must be
+   * `'preview1'`. Required, as in Node.js.
+   */
+  version: 'preview1'
+
   /** The arguments of the program, including its name. Defaults to `[]`. */
   args?: string[]
 
@@ -251,7 +258,7 @@ interface WASIOptions {
 /** A WebAssembly instance, or anything with the same `exports`. */
 interface WASIInstance {
   /** The exports of the instance, which must include its `memory`. */
-  exports: WebAssembly.Exports
+  exports: wasm.Exports
 }
 
 /**
@@ -264,7 +271,7 @@ declare class WASI {
    * Create a WASI implementation for a single instance.
    * @param opts - The capabilities of the instance.
    */
-  constructor(opts?: WASIOptions)
+  constructor(opts: WASIOptions)
 
   /** The functions of the `wasi_snapshot_preview1` import module. */
   readonly wasiImport: Record<string, (...args: any[]) => number>

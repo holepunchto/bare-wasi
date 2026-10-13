@@ -1,4 +1,5 @@
 const hrtime = require('bare-hrtime')
+const wasm = require('bare-wasm')
 const constants = require('./lib/constants')
 const errors = require('./lib/errors')
 
@@ -122,6 +123,7 @@ const defaultClock = {
 module.exports = exports = class WASI {
   constructor(opts = {}) {
     const {
+      version,
       args = [],
       env = {},
       preopens = {},
@@ -132,6 +134,10 @@ module.exports = exports = class WASI {
       random = null,
       returnOnExit = true
     } = opts
+
+    if (version !== 'preview1') {
+      throw errors.INVALID_VERSION(`WASI version '${version}' is not supported`)
+    }
 
     this._args = args.map((arg) => Buffer.from(String(arg) + '\0'))
     this._env = Object.entries(env).map(([key, value]) => Buffer.from(`${key}=${value}\0`))
@@ -216,7 +222,7 @@ module.exports = exports = class WASI {
 
     const { exports } = instance
 
-    if (!(exports.memory instanceof WebAssembly.Memory)) {
+    if (!(exports.memory instanceof wasm.Memory)) {
       throw errors.MISSING_EXPORT("Instance does not export a 'memory'")
     }
 
