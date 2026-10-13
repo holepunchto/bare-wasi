@@ -9,10 +9,12 @@ npm i bare-wasi
 ## Usage
 
 ```js
+const wasm = require('bare-wasm')
 const WASI = require('bare-wasi')
 const { MemoryDirectory } = require('bare-wasi/memory')
 
 const wasi = new WASI({
+  version: 'preview1',
   args: ['program'],
   preopens: {
     '/data': new MemoryDirectory({ 'hello.txt': 'Hello from JavaScript' })
@@ -20,11 +22,13 @@ const wasi = new WASI({
   stdout: (data) => console.log(data.toString())
 })
 
-const module = new WebAssembly.Module(bytes)
-const instance = new WebAssembly.Instance(module, wasi.getImportObject())
+const module = new wasm.Module(bytes)
+const instance = new wasm.Instance(module, wasi.getImportObject())
 
 const exitCode = wasi.start(instance)
 ```
+
+The `version` option is required and must be `'preview1'` so that options are always read for the version of WASI they were written for.
 
 ## Capabilities
 
@@ -54,6 +58,19 @@ const directory = new MemoryDirectory({
   'file.txt': 'contents',
   nested: { 'data.bin': new Uint8Array([1, 2, 3]) }
 })
+```
+
+### Host
+
+Directories of the host filesystem are backed by [`bare-directory`](https://github.com/holepunchto/bare-directory) capabilities. They confine every operation to the directory in the kernel as well, and limit it to the rights the capability has.
+
+```js
+const { DirectorySync } = require('bare-directory')
+const { HostDirectory } = require('bare-wasi/host')
+
+const directory = new HostDirectory(
+  DirectorySync.open('/srv/data', { rights: ['list', 'lookup', 'read'] })
+)
 ```
 
 ## License

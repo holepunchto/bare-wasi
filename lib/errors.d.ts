@@ -34,6 +34,11 @@ declare class WASIError extends Error {
    * @param msg - Human-readable error message.
    */
   static INVALID_PREOPEN(msg: string): WASIError
+  /**
+   * Create a `WASIError` with code `'INVALID_VERSION'`, for options written for a version of WASI that is not supported.
+   * @param msg - Human-readable error message.
+   */
+  static INVALID_VERSION(msg: string): WASIError
 }
 
 export = WASIError

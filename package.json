@@ -12,6 +12,10 @@
       "types": "./lib/memory.d.ts",
       "default": "./lib/memory.js"
     },
+    "./host": {
+      "types": "./lib/host.d.ts",
+      "default": "./lib/host.js"
+    },
     "./constants": {
       "types": "./lib/constants.d.ts",
       "default": "./lib/constants.js"
@@ -42,11 +46,21 @@
   },
   "homepage": "https://github.com/holepunchto/bare-wasi#readme",
   "dependencies": {
-    "bare-hrtime": "^2.1.2"
+    "bare-hrtime": "^2.1.2",
+    "bare-wasm": "^0.1.0"
+  },
+  "peerDependencies": {
+    "bare-directory": "*"
+  },
+  "peerDependenciesMeta": {
+    "bare-directory": {
+      "optional": true
+    }
   },
   "devDependencies": {
+    "bare-directory": "^0.1.0",
     "bare-fetch": "^3.4.0",
-    "bare-fs": "^4.4.4",
+    "bare-fs": "^4.8.3",
     "bare-path": "^3.0.0",
     "bare-zlib": "^1.4.1",
     "brittle": "^3.5.0",

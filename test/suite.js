@@ -4,8 +4,12 @@ const path = require('bare-path')
 const fetch = require('bare-fetch')
 const zlib = require('bare-zlib')
 const tar = require('tar-stream')
+const os = require('bare-os')
+const wasm = require('bare-wasm')
+const { DirectorySync } = require('bare-directory')
 const WASI = require('..')
 const { MemoryDirectory, MemoryFile, MemorySymlink } = require('../lib/memory')
+const { HostDirectory } = require('../lib/host')
 const expectations = require('./suite.json')
 
 const commit = 'e0aa527fab67f2f311882bcee4f62cc755433b73'
@@ -29,34 +33,36 @@ hook('fetch the WASI test suite', { timeout: 5 * 60 * 1000 }, async () => {
   fs.writeFileSync(marker, commit)
 })
 
-test('WASI test suite', async (t) => {
-  for (const { language, directory } of suites) {
-    const tests = path.join(root, directory)
+for (const backend of ['memory', 'host']) {
+  test(`WASI test suite, ${backend} backend`, async (t) => {
+    for (const { language, directory } of suites) {
+      const tests = path.join(root, directory)
 
-    for (const file of fs.readdirSync(tests).sort()) {
-      if (path.extname(file) !== '.wasm') continue
+      for (const file of fs.readdirSync(tests).sort()) {
+        if (path.extname(file) !== '.wasm') continue
 
-      const name = `${language}/${path.basename(file, '.wasm')}`
-      const spec = path.join(tests, path.basename(file, '.wasm') + '.json')
+        const name = `${language}/${path.basename(file, '.wasm')}`
+        const spec = path.join(tests, path.basename(file, '.wasm') + '.json')
 
-      const config = fs.existsSync(spec) ? JSON.parse(fs.readFileSync(spec)) : {}
+        const config = fs.existsSync(spec) ? JSON.parse(fs.readFileSync(spec)) : {}
 
-      await t.test(name, (t) => {
-        const failures = run(path.join(tests, file), config)
-        const reason = expectations[name]
+        await t.test(name, (t) => {
+          const failures = run(path.join(tests, file), config, backend)
+          const reason = expectations[name] ?? expectations[`${backend}:${name}`]
 
-        if (reason === undefined) {
-          t.alike(failures, [], failures.join('\n'))
-        } else {
-          t.ok(failures.length > 0, `expected to fail, as ${reason}`)
-        }
-      })
+          if (reason === undefined) {
+            t.alike(failures, [], failures.join('\n'))
+          } else {
+            t.ok(failures.length > 0, `expected to fail, as ${reason}`)
+          }
+        })
+      }
     }
-  }
-})
+  })
+}
 
 // Mirrors how the upstream runner treats a legacy test.
-function run(file, config) {
+function run(file, config, backend) {
   const {
     args = [],
     env = {},
@@ -67,11 +73,14 @@ function run(file, config) {
   } = config
 
   const output = { stdout: [], stderr: [] }
+  const copies = []
 
   const wasi = new WASI({
+    version: 'preview1',
     args: [path.basename(file), ...args],
     env,
-    preopens: root === null ? {} : { '/': load(path.join(path.dirname(file), root)) },
+    preopens:
+      root === null ? {} : { '/': preopen(path.join(path.dirname(file), root), backend, copies) },
     stdin: new Uint8Array(0),
     stdout: (data) => output.stdout.push(data),
     stderr: (data) => output.stderr.push(data),
@@ -85,11 +94,13 @@ function run(file, config) {
   let code
 
   try {
-    const module = new WebAssembly.Module(fs.readFileSync(file))
-    code = wasi.start(new WebAssembly.Instance(module, wasi.getImportObject()))
+    const module = new wasm.Module(fs.readFileSync(file))
+    code = wasi.start(new wasm.Instance(module, wasi.getImportObject()))
   } catch (err) {
     failures.push(`threw ${err.stack || err}`)
   }
+
+  for (const copy of copies) fs.rmSync(copy, { recursive: true, force: true })
 
   const actual = {
     stdout: Buffer.concat(output.stdout).toString(),
@@ -114,6 +125,18 @@ function run(file, config) {
   }
 
   return failures
+}
+
+function preopen(directory, backend, copies) {
+  if (backend === 'memory') return load(directory)
+
+  const copy = fs.mkdtempSync(path.join(os.tmpdir(), 'bare-wasi-'))
+
+  copies.push(copy)
+
+  fs.cpSync(directory, copy, { recursive: true })
+
+  return new HostDirectory(DirectorySync.open(copy))
 }
 
 function load(directory) {

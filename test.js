@@ -1,6 +1,12 @@
 const test = require('brittle')
+const fs = require('bare-fs')
+const os = require('bare-os')
+const path = require('bare-path')
+const wasm = require('bare-wasm')
+const { DirectorySync } = require('bare-directory')
 const WASI = require('.')
 const { MemoryDirectory, MemoryFile, MemorySymlink } = require('./lib/memory')
+const { HostDirectory } = require('./lib/host')
 
 const { errno, rights, oflags } = WASI.constants
 
@@ -24,7 +30,7 @@ test('stdout and stderr', (t) => {
 })
 
 test('streams that were not granted do not exist', (t) => {
-  const wasi = new WASI()
+  const wasi = new WASI({ version: 'preview1' })
   const instance = instantiate('hello', wasi)
 
   t.is(wasi.start(instance), 0)
@@ -92,6 +98,39 @@ test('paths cannot escape a preopen', (t) => {
   })
 
   const { stdout } = run('escape', { preopens: { '/data': outer.lookup('data') } })
+
+  t.is(
+    stdout,
+    [
+      '/data/../secret Capabilities insufficient',
+      '/data/sub/../../secret Capabilities insufficient',
+      '/secret No such file or directory',
+      '/data/relative Capabilities insufficient',
+      '/data/absolute Capabilities insufficient',
+      '/data/loop Symbolic link loop',
+      '/data/sub/../inside.txt opened',
+      ''
+    ].join('\n')
+  )
+})
+
+test('paths cannot escape a host preopen', (t) => {
+  const outer = fs.mkdtempSync(path.join(os.tmpdir(), 'bare-wasi-'))
+
+  t.teardown(() => fs.rmSync(outer, { recursive: true, force: true }))
+
+  fs.writeFileSync(path.join(outer, 'secret'), 'top secret')
+  fs.mkdirSync(path.join(outer, 'data', 'sub'), { recursive: true })
+  fs.writeFileSync(path.join(outer, 'data', 'inside.txt'), 'fine')
+  fs.symlinkSync('../secret', path.join(outer, 'data', 'relative'))
+  fs.symlinkSync(path.join(outer, 'secret'), path.join(outer, 'data', 'absolute'))
+  fs.symlinkSync('loop', path.join(outer, 'data', 'loop'))
+
+  const data = DirectorySync.open(path.join(outer, 'data'))
+
+  t.teardown(() => data.close())
+
+  const { stdout } = run('escape', { preopens: { '/data': new HostDirectory(data) } })
 
   t.is(
     stdout,
@@ -219,11 +258,19 @@ test('read only descriptors cannot be written', (t) => {
 })
 
 test('preopens must be directories', (t) => {
-  t.exception(() => new WASI({ preopens: { '/file': new MemoryFile('x') } }), /INVALID_PREOPEN/)
+  t.exception(
+    () => new WASI({ version: 'preview1', preopens: { '/file': new MemoryFile('x') } }),
+    /INVALID_PREOPEN/
+  )
+})
+
+test('the version is required', (t) => {
+  t.exception(() => new WASI(), /INVALID_VERSION/)
+  t.exception(() => new WASI({ version: 'unstable' }), /INVALID_VERSION/)
 })
 
 test('an instance can only be started once', (t) => {
-  const wasi = new WASI()
+  const wasi = new WASI({ version: 'preview1' })
   const instance = instantiate('exit', wasi)
 
   wasi.start(instance)
@@ -232,7 +279,7 @@ test('an instance can only be started once', (t) => {
 })
 
 function instantiate(name, wasi) {
-  return new WebAssembly.Instance(new WebAssembly.Module(fixtures[name]), wasi.getImportObject())
+  return new wasm.Instance(new wasm.Module(fixtures[name]), wasi.getImportObject())
 }
 
 function run(name, opts = {}) {
@@ -240,6 +287,7 @@ function run(name, opts = {}) {
   const stderr = []
 
   const wasi = new WASI({
+    version: 'preview1',
     stdout: (data) => stdout.push(data),
     stderr: (data) => stderr.push(data),
     ...opts
@@ -255,8 +303,8 @@ function run(name, opts = {}) {
 }
 
 function initialize(opts) {
-  const wasi = new WASI(opts)
-  const memory = new WebAssembly.Memory({ initial: 1 })
+  const wasi = new WASI({ version: 'preview1', ...opts })
+  const memory = new wasm.Memory({ initial: 1 })
 
   wasi.initialize({ exports: { memory } })
 
