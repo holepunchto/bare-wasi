@@ -122,9 +122,9 @@ test('paths cannot escape a host preopen', (t) => {
   fs.writeFileSync(path.join(outer, 'secret'), 'top secret')
   fs.mkdirSync(path.join(outer, 'data', 'sub'), { recursive: true })
   fs.writeFileSync(path.join(outer, 'data', 'inside.txt'), 'fine')
-  fs.symlinkSync('../secret', path.join(outer, 'data', 'relative'))
-  fs.symlinkSync(path.join(outer, 'secret'), path.join(outer, 'data', 'absolute'))
-  fs.symlinkSync('loop', path.join(outer, 'data', 'loop'))
+  fs.symlinkSync('../secret', path.join(outer, 'data', 'relative'), 'file')
+  fs.symlinkSync(path.join(outer, 'secret'), path.join(outer, 'data', 'absolute'), 'file')
+  fs.symlinkSync('loop', path.join(outer, 'data', 'loop'), 'file')
 
   const data = DirectorySync.open(path.join(outer, 'data'))
 

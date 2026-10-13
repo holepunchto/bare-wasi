@@ -4,7 +4,8 @@ import { WASIDirectory } from '..'
 /**
  * A host directory backed by a `bare-directory` capability. The guest reaches
  * only what the capability reaches, with its rights, and `bare-wasi` resolves
- * symbolic links within the preopen.
+ * symbolic links within the preopen. On Windows, link targets use `/` as the
+ * separator and drive letter, UNC, and device paths are absolute.
  *
  * Files are opened when looked up, with the most access the rights and the file
  * allow, so an open file stays the same file if it's renamed. Creating symbolic
