@@ -257,6 +257,17 @@ test('read only descriptors cannot be written', (t) => {
   t.is(wasi.wasiImport.fd_write(fd, 128, 1, 32), errno.BADF)
 })
 
+test('files do not take the descriptors of streams that were not granted', (t) => {
+  const { wasi, memory } = initialize({
+    preopens: { '/data': new MemoryDirectory({ 'file.txt': 'x' }) }
+  })
+
+  const len = write(memory, 64, 'file.txt')
+
+  t.is(wasi.wasiImport.path_open(3, 0, 64, len, 0, rights.FD_READ, 0n, 0, 32), errno.SUCCESS)
+  t.is(new DataView(memory.buffer).getUint32(32, true), 4)
+})
+
 test('preopens must be directories', (t) => {
   t.exception(
     () => new WASI({ version: 'preview1', preopens: { '/file': new MemoryFile('x') } }),

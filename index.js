@@ -309,8 +309,10 @@ module.exports = exports = class WASI {
     return entry
   }
 
+  // The standard streams keep their descriptors even when they weren't granted,
+  // since programs take a file opened at one of them for the stream.
   _allocate(entry) {
-    let fd = 0
+    let fd = 3
 
     while (this._fds.has(fd)) fd++
 
