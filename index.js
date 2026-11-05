@@ -1,4 +1,5 @@
 const hrtime = require('bare-hrtime')
+const sleep = require('bare-sleep')
 const wasm = require('bare-wasm')
 const constants = require('./lib/constants')
 const errors = require('./lib/errors')
@@ -981,7 +982,7 @@ module.exports = exports = class WASI {
         (min, timer) => (timer.delay < min ? timer.delay : min),
         timers[0].delay
       )
-      sleep(delay)
+      sleep.bigint(delay)
     }
 
     for (const timer of timers) {
@@ -1065,10 +1066,4 @@ const filetypes = {
 
 function filetypeOf(node) {
   return filetypes[node.type] ?? filetype.UNKNOWN
-}
-
-const sleeper = new Int32Array(new SharedArrayBuffer(4))
-
-function sleep(ns) {
-  if (ns > 0n) Atomics.wait(sleeper, 0, 0, Number(ns) / 1e6)
 }

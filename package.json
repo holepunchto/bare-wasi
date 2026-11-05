@@ -47,6 +47,7 @@
   "homepage": "https://github.com/holepunchto/bare-wasi#readme",
   "dependencies": {
     "bare-hrtime": "^2.1.2",
+    "bare-sleep": "^1.0.0",
     "bare-wasm": "^0.1.0"
   },
   "peerDependencies": {
